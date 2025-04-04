@@ -1,8 +1,21 @@
 # React + Vite
+CSSECDV Case Study
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+How to run it:
+1. Download and install Node.js (if you haven’t already):
+👉 https://nodejs.org/en
 
-Currently, two official plugins are available:
+2. Open the project folder in your terminal and ensure you're in the correct directory.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+3. Run the following command to install dependencies:
+   npm install
+
+4. Start the development server with:
+   npm run dev
+
+5. Click the localhost link provided in the terminal to open the app in your browser.
+   
+6. To stop the project, press Ctrl + C in the terminal.
+   
+
+
