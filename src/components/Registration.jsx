@@ -5,6 +5,7 @@ import { clearError, registerFailure,registerRequest,registerSuccess } from '../
 import { useState, useEffect } from 'react';
 import CryptoJS from 'crypto-js';
 import { Link } from 'react-router-dom';
+import bcrypt from 'bcryptjs';
 
 export default function Registration(){
 
@@ -44,6 +45,9 @@ export default function Registration(){
         console.log(users);
     };
 
+    const saltRounds = 10;
+    
+
     return(
         <div>
             <h1 className='relative z-0 w-full mb-5 group text-center text-3xl'>Registration Page</h1>
@@ -68,18 +72,18 @@ export default function Registration(){
                 setTimeout(() => {
                     try{
                         const users = JSON.parse(localStorage.getItem('users')) || [];
-                        const userExists = users.some(user => user.email === values.email || user.mobileNumber === values.mobileNumber || user.address === values.address || user.gender === values.gender || user.birthdate === values.birthdate);
+                        const userExists = users.some(user => user.email === values.email && user.mobileNumber === values.mobileNumber && user.address === values.address && user.gender === values.gender && user.birthdate === values.birthdate);
 
                         if(userExists){
                             throw new Error("All given information are already used...");
                         }
 
-                        const encryptedPassword = CryptoJS.AES.encrypt(values.password, 'your-secret-key').toString();
-
+                        const salt = bcrypt.genSaltSync(saltRounds);
+                        const hashedPassword = bcrypt.hashSync(values.password, salt);
                         const newUser = {
-                            ...values,
-                            password:encryptedPassword
-                        }
+                                    ...values,
+                                    password:hashedPassword
+                                }
 
                         users.push(newUser);
                         localStorage.setItem('users', JSON.stringify(users));
