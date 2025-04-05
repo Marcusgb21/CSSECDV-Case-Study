@@ -4,7 +4,10 @@ const initialState = {
     user: null,
     status: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
-    loggedInUser: null
+    loggedInUser: null,
+    failedAttempts: 0,
+    isLocked: false,
+    lockUntil: null
   };
   
 export const userSlice = createSlice({
@@ -28,10 +31,25 @@ export const userSlice = createSlice({
         loginSuccess: (state,action) =>{
             state.status = 'success';
             state.loggedInUser = action.payload;
+            state.failedAttempts = 0;
+            state.isLocked = false;
+            state.lockUntil = null;
         },
         loginFailure: (state,action) =>{
-            state.status = 'faiure';
+            state.status = 'failure';
             state.error = action.payload;
+
+            if (state.lockUntil && Date.now() < state.lockUntil) {
+                state.isLocked = true;  // Account is locked
+                return;  // Early return, don't increase failed attempts if locked
+            }
+
+            state.failedAttempts += 1;
+
+            if (state.failedAttempts >= 5) {
+            state.lockUntil = Date.now() + 5 * 60 * 1000; // Lock for 5 minutes
+            state.failedAttempts = 0; // Reset failed attempts after lock
+        }
         },
         clearError: (state) => {
             state.error = null;

@@ -9,21 +9,34 @@ import { Link } from 'react-router-dom';
 export default function Login(){
     const dispatch = useDispatch();
     const [storedUsers, setStoredUsers] = useState([]);
-    const {status, error, loggedInUser} = useSelector((state) => state.user);
+    const {status, error, loggedInUser, isLocked, lockUntil} = useSelector((state) => state.user);
     const [currentUser, setCurrentUser] = useState(null);
 
     const mobileNumberRegex = /^(\+?\d{1,4}|\d{1,4})?(\s?\d{10})$/;
+
+    const lockTimeLeft = lockUntil ? Math.max(0, lockUntil - Date.now()) : 0;
 
     useEffect(() => {
         const users = JSON.parse(localStorage.getItem('users')) || [];
         setCurrentUser(users[users.length - 1] || null);
     }, []);
 
-    const printStoredUsers = (e) => {
-        e.preventDefault()
-        const users = JSON.parse(localStorage.getItem('users')) || [];
-        console.log(users);
-    };
+    useEffect(() => {
+        // If user is locked, we update the isLocked flag
+        if (lockUntil && Date.now() < lockUntil) {
+            dispatch({ type: 'user/setIsLocked', payload: true });
+        }
+    }, [lockUntil, dispatch]);
+    // Lock message based on remaining lock time
+    const lockMessage = isLocked && lockTimeLeft > 0
+    ? `Account is locked. Try again in ${Math.floor(lockTimeLeft / 1000)} seconds.`
+    : null;
+
+    // const printStoredUsers = (e) => {
+    //     e.preventDefault()
+    //     const users = JSON.parse(localStorage.getItem('users')) || [];
+    //     console.log(users);
+    // };
 
     const loginSchema = Yup.object().shape({
         emailOrMobile: Yup.string()
@@ -45,7 +58,6 @@ export default function Login(){
     return (
         <div>
             <h1 className='relative z-0 w-full mb-5 group text-center text-3xl'>Login Page</h1>
-            
             <Formik
         initialValues={{
             emailOrMobile:'',
@@ -75,18 +87,42 @@ export default function Login(){
                 throw new Error('Invalid login credentials');
             }
 
-            // if (decryptedPassword !== values.password){
-            //     throw new Error('Invalid Login Credentials... Please try again');
-            // }
-            // setStoredUsers(users);
-        //    setCurrentUser(user)
-
+            //Check if the account is locked
+      if (user.lockUntil && Date.now() < user.lockUntil) {
+        dispatch(loginFailure('Account is temporarily locked. Please try again later.'));
+        setSubmitting(false);
+        return;
+      }
             dispatch(loginSuccess(user));
+            // Update localStorage after successful login
+        const updatedUsers = users.map((u) => {
+          if (u.email === user.email) {
+            return {
+              ...u,
+              failedAttempts: 0, // Reset failed attempts
+              lockUntil: null, // Reset lock time
+            };
+          }
+          return u;
+        });
+        localStorage.setItem('users', JSON.stringify(updatedUsers));
             } catch(error){
                 dispatch(loginFailure(error.message));
-            }
+                const users = JSON.parse(localStorage.getItem('users')) || [];
+                const updatedUsers = users.map((u) => {
+        if (u.email === values.emailOrMobile) {
+          return {
+            ...u,
+            failedAttempts: (u.failedAttempts || 0) + 1, // Increment failed attempts
+            lockUntil: (u.failedAttempts || 0) >= 4 ? Date.now() + 5 * 60 * 1000 : null, // Lock account after 5 failed attempts
+          };
+        }
+        return u;
+      });
+            // Save updated users back to localStorage
+      localStorage.setItem('users', JSON.stringify(updatedUsers));
             setSubmitting(false);
-            
+            }
         
         }, 1000);
         }}
@@ -118,11 +154,14 @@ export default function Login(){
                 </Link> 
                 
                 {error && <div style={{ color: 'red' }}>{error}</div>}
+                {lockMessage && <div style={{ color: 'red' }}>{lockMessage}</div>}
                 {loggedInUser && (
                     <div>
                         <h2 className='relative z-0 w-full mb-5 group text-center text-3xl'>Welcome <span className="text-blue-500">{loggedInUser.name}</span></h2>
                     </div>
                 )}
+
+                
                 
             </Form>
             )}
