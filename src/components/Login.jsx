@@ -3,7 +3,7 @@ import * as Yup from 'yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginRequest, loginSuccess, loginFailure, clearError } from '../features/user';
 import { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js';
+import bcrypt from 'bcryptjs';
 import { Link } from 'react-router-dom';
 
 export default function Login(){
@@ -70,6 +70,12 @@ export default function Login(){
         dispatch(loginRequest());
 
         setTimeout(() => {
+            const logAttempt = {
+                emailOrMobile: values.emailOrMobile,
+                time: new Date().toISOString(),
+                success: false, // default, update later
+                reason: null
+            };
 
             try{
                 const users = JSON.parse(localStorage.getItem('users')) || []
@@ -80,12 +86,12 @@ export default function Login(){
                 throw new Error('User not found! Please register');
             }
 
-            const decrypt = CryptoJS.AES.decrypt(user.password, 'your-secret-key');
-            const decryptedPassword = decrypt.toString(CryptoJS.enc.Utf8);
+            const isPasswordMatch = bcrypt.compareSync(values.password, user.password);
 
-            if (decryptedPassword !== values.password){
-                throw new Error('Invalid login credentials');
+            if (!isPasswordMatch) {
+            throw new Error('Invalid login credentials');
             }
+
 
             //Check if the account is locked
       if (user.lockUntil && Date.now() < user.lockUntil) {
@@ -94,6 +100,9 @@ export default function Login(){
         return;
       }
             dispatch(loginSuccess(user));
+
+            logAttempt.success = true;
+            logAttempt.reason = "Login successful";
             // Update localStorage after successful login
         const updatedUsers = users.map((u) => {
           if (u.email === user.email) {
@@ -108,6 +117,8 @@ export default function Login(){
         localStorage.setItem('users', JSON.stringify(updatedUsers));
             } catch(error){
                 dispatch(loginFailure(error.message));
+                logAttempt.success = false;
+                logAttempt.reason = error.message;
                 const users = JSON.parse(localStorage.getItem('users')) || [];
                 const updatedUsers = users.map((u) => {
         if (u.email === values.emailOrMobile) {
@@ -121,9 +132,14 @@ export default function Login(){
       });
             // Save updated users back to localStorage
       localStorage.setItem('users', JSON.stringify(updatedUsers));
-            setSubmitting(false);
             }
         
+            const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+            prevLogs.push(logAttempt);
+            localStorage.setItem('authLogs', JSON.stringify(prevLogs));
+
+            setSubmitting(false);
+            
         }, 1000);
         }}
         >

@@ -70,31 +70,57 @@ export default function Registration(){
                 dispatch(registerRequest());
 
                 setTimeout(() => {
-                    try{
+                    const logAttempt = {
+                        email: values.email,
+                        mobileNumber: values.mobileNumber,
+                        time: new Date().toISOString(),
+                        success: false,
+                        reason: null
+                      };
+                      
+                      try {
                         const users = JSON.parse(localStorage.getItem('users')) || [];
-                        const userExists = users.some(user => user.email === values.email && user.mobileNumber === values.mobileNumber && user.address === values.address && user.gender === values.gender && user.birthdate === values.birthdate);
-
-                        if(userExists){
-                            throw new Error("All given information are already used...");
+                        const userExists = users.some(user =>
+                          user.email === values.email &&
+                          user.mobileNumber === values.mobileNumber &&
+                          user.address === values.address &&
+                          user.gender === values.gender &&
+                          user.birthdate === values.birthdate
+                        );
+                      
+                        if (userExists) {
+                          throw new Error("All given information are already used...");
                         }
-
+                      
                         const salt = bcrypt.genSaltSync(saltRounds);
                         const hashedPassword = bcrypt.hashSync(values.password, salt);
-                        const newUser = {
-                                    ...values,
-                                    password:hashedPassword
-                                }
-
+                        const newUser = { ...values, password: hashedPassword };
+                      
                         users.push(newUser);
                         localStorage.setItem('users', JSON.stringify(users));
                         setStoredUsers(users);
-
+                      
                         dispatch(registerSuccess(newUser));
-                    }   catch (error){
-                        dispatch(registerFailure(error.message))
-                    }
-
-                    setSubmitting(false);
+                      
+                        // ✅ Log success
+                        logAttempt.success = true;
+                        logAttempt.reason = "Registration successful";
+                      
+                      } catch (error) {
+                        dispatch(registerFailure(error.message));
+                      
+                        // ✅ Log failure
+                        logAttempt.success = false;
+                        logAttempt.reason = error.message;
+                      }
+                      
+                      // ✅ Log the attempt regardless of success/failure
+                      const prevLogs = JSON.parse(localStorage.getItem('registrationLogs')) || [];
+                      prevLogs.push(logAttempt);
+                      localStorage.setItem('registrationLogs', JSON.stringify(prevLogs));
+                      
+                      setSubmitting(false);
+                      
                 }, 1000);
             }}
         >
