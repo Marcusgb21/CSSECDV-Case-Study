@@ -19,6 +19,15 @@ export default function Registration(){
         setStoredUsers(users);
     }, []);
 
+    const securityQuestions = [
+        "What was the name of your first stuffed animal?",
+        "What was the model of your first car?",
+        "What was the first concert you attended?",
+        "What was the name of your childhood best friend?",
+        "What city did your parents meet in?"
+      ];
+      
+
     const registrationSchema = Yup.object().shape({
         name: Yup.string()
         .min(2, 'Too Short!')
@@ -38,6 +47,9 @@ export default function Registration(){
         .matches(/\d/, 'Password must contain at least one number')
         .matches(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character'),
         birthdate: Yup.string().required('Birthday is required'), 
+        securityQuestion: Yup.string().required("Security question is required"),
+        securityAnswer: Yup.string().min(3, "Answer too short").required("Security answer is required"),
+
     });
 
     const printStoredUsers = () => {
@@ -59,7 +71,9 @@ export default function Registration(){
                 address: '',
                 gender: '',
                 password:'',
-                birthdate:''
+                birthdate:'',
+                securityQuestion: '',
+                securityAnswer: ''
             }}
             validationSchema={registrationSchema}
             onSubmit={(values, {setSubmitting})=> {
@@ -94,7 +108,14 @@ export default function Registration(){
                       
                         const salt = bcrypt.genSaltSync(saltRounds);
                         const hashedPassword = bcrypt.hashSync(values.password, salt);
-                        const newUser = { ...values, password: hashedPassword };
+                        const hashedAnswer = bcrypt.hashSync(values.securityAnswer, salt);
+                        const newUser = {
+                        ...values,
+                        password: hashedPassword,
+                        securityAnswerHash: hashedAnswer
+                        };
+                        delete newUser.securityAnswer; // Don't store plain answer
+
                       
                         users.push(newUser);
                         localStorage.setItem('users', JSON.stringify(users));
@@ -180,10 +201,32 @@ export default function Registration(){
                         <div style={{ color: 'red' }} >{errors.birthdate} </div>
                     ) : null}
                 </div>
+
+                {/*security questions*/}
+                <div className='relative z-0 w-full mb-5 group'>
+                <label htmlFor='securityQuestion' className='block mb-1 text-sm font-medium text-gray-700'>Security Question</label>
+                <Field name="securityQuestion" as="select" className="block w-full p-2 border border-gray-300 rounded">
+                    <div className="text-gray-500 italic p-2">Select a security question</div>
+                    {securityQuestions.map((q, idx) => (
+                    <option key={idx} value={q}>{q}</option>
+                    ))}
+                </Field>
+                <ErrorMessage name="securityQuestion" component="div" className="text-red-600 text-sm mt-1" />
+                </div>
+
+
+                <div className='relative z-0 w-full mb-5 group'>
+                <label htmlFor='securityAnswer' className='block mb-1 text-sm font-medium text-gray-700'>Answer</label>
+                <Field name="securityAnswer" type="text" className="block w-full p-2 border border-gray-300 rounded" />
+                <ErrorMessage name="securityAnswer" component="div" className="text-red-600 text-sm mt-1" />
+                </div>
+
                 <button type='submit' disabled={isSubmitting || status === 'loading'} className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800' >Register</button>
                 <Link to='/login'>
                 <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Go To Login Page</button>    
                 </Link>
+
+
                 {error && <div style={{ color: 'red' }}>{error}</div>}
             </Form>
             )}

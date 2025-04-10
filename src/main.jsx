@@ -11,6 +11,7 @@ import {
 } from "react-router-dom";
 import Login from './components/Login.jsx'
 import Registration from './components/Registration.jsx'
+import ForgotPassword from './components/ForgotPassword.jsx';
 
 
 const router = createBrowserRouter([
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
     path: "register",
     element: <Registration />,
   },
+  {
+    path: "forgot-password",
+    element: <ForgotPassword />,
+  }
 ]);
 
 const store = configureStore({
