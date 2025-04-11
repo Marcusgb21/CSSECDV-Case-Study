@@ -7,9 +7,10 @@ const initialState = {
     loggedInUser: null,
     failedAttempts: 0,
     isLocked: false,
-    lockUntil: null
+    lockUntil: null,
+    roles: ['Website Administrator', 'Product Manager', 'Customer'] // Available roles in the system
   };
-  
+
 export const userSlice = createSlice({
     name: "user",
     initialState,
@@ -62,5 +63,10 @@ export const userSlice = createSlice({
 export const {registerRequest, registerSuccess, registerFailure,
     loginRequest, loginSuccess, loginFailure, clearError
 } = userSlice.actions;
+
+// Role-related helper functions
+export const isAdmin = (user) => user && user.role === 'Website Administrator';
+export const isProductManager = (user) => user && user.role === 'Product Manager';
+export const isCustomer = (user) => user && user.role === 'Customer';
 
 export default userSlice.reducer;

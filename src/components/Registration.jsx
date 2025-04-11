@@ -3,13 +3,13 @@ import * as Yup from 'yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError, registerFailure,registerRequest,registerSuccess } from '../features/user';
 import { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
 
 export default function Registration(){
 
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const {status, error} = useSelector((state) => state.user);
     const [storedUsers, setStoredUsers] = useState([]);
     const mobileNumberRegex = /^(\+?\d{1,4}|\d{1,4})?(\s?\d{10})$/;
@@ -26,7 +26,7 @@ export default function Registration(){
         "What was the name of your childhood best friend?",
         "What city did your parents meet in?"
       ];
-      
+
 
     const registrationSchema = Yup.object().shape({
         name: Yup.string()
@@ -46,10 +46,10 @@ export default function Registration(){
         .matches(/[A-Z]/, 'Password must contain at least one upper case letter')
         .matches(/\d/, 'Password must contain at least one number')
         .matches(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character'),
-        birthdate: Yup.string().required('Birthday is required'), 
+        birthdate: Yup.string().required('Birthday is required'),
         securityQuestion: Yup.string().required("Security question is required"),
         securityAnswer: Yup.string().min(3, "Answer too short").required("Security answer is required"),
-
+        role: Yup.string().required('Role is required')
     });
 
     const printStoredUsers = () => {
@@ -58,12 +58,12 @@ export default function Registration(){
     };
 
     const saltRounds = 10;
-    
+
 
     return(
         <div>
             <h1 className='relative z-0 w-full mb-5 group text-center text-3xl'>Registration Page</h1>
-        <Formik 
+        <Formik
             initialValues={{
                 name: '',
                 mobileNumber: '',
@@ -73,7 +73,8 @@ export default function Registration(){
                 password:'',
                 birthdate:'',
                 securityQuestion: '',
-                securityAnswer: ''
+                securityAnswer: '',
+                role: 'Customer' // Default role
             }}
             validationSchema={registrationSchema}
             onSubmit={(values, {setSubmitting})=> {
@@ -91,7 +92,7 @@ export default function Registration(){
                         success: false,
                         reason: null
                       };
-                      
+
                       try {
                         const users = JSON.parse(localStorage.getItem('users')) || [];
                         const userExists = users.some(user =>
@@ -101,11 +102,11 @@ export default function Registration(){
                           user.gender === values.gender &&
                           user.birthdate === values.birthdate
                         );
-                      
+
                         if (userExists) {
                           throw new Error("All given information are already used...");
                         }
-                      
+
                         const salt = bcrypt.genSaltSync(saltRounds);
                         const hashedPassword = bcrypt.hashSync(values.password, salt);
                         const hashedAnswer = bcrypt.hashSync(values.securityAnswer, salt);
@@ -116,32 +117,37 @@ export default function Registration(){
                         };
                         delete newUser.securityAnswer; // Don't store plain answer
 
-                      
+
                         users.push(newUser);
                         localStorage.setItem('users', JSON.stringify(users));
                         setStoredUsers(users);
-                      
+
                         dispatch(registerSuccess(newUser));
-                      
+
                         // ✅ Log success
                         logAttempt.success = true;
                         logAttempt.reason = "Registration successful";
-                      
+
+                        // Redirect to login page after successful registration
+                        setTimeout(() => {
+                          navigate('/login');
+                        }, 1500);
+
                       } catch (error) {
                         dispatch(registerFailure(error.message));
-                      
+
                         // ✅ Log failure
                         logAttempt.success = false;
                         logAttempt.reason = error.message;
                       }
-                      
+
                       // ✅ Log the attempt regardless of success/failure
                       const prevLogs = JSON.parse(localStorage.getItem('registrationLogs')) || [];
                       prevLogs.push(logAttempt);
                       localStorage.setItem('registrationLogs', JSON.stringify(prevLogs));
-                      
+
                       setSubmitting(false);
-                      
+
                 }, 1000);
             }}
         >
@@ -221,9 +227,19 @@ export default function Registration(){
                 <ErrorMessage name="securityAnswer" component="div" className="text-red-600 text-sm mt-1" />
                 </div>
 
+                <div className='relative z-0 w-full mb-5 group'>
+                <label htmlFor='role' className='block mb-1 text-sm font-medium text-gray-700'>Role</label>
+                <Field name="role" as="select" className="block w-full p-2 border border-gray-300 rounded">
+                    <option value="Customer">Customer</option>
+                    <option value="Product Manager">Product Manager</option>
+                    <option value="Website Administrator">Website Administrator</option>
+                </Field>
+                <ErrorMessage name="role" component="div" className="text-red-600 text-sm mt-1" />
+                </div>
+
                 <button type='submit' disabled={isSubmitting || status === 'loading'} className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800' >Register</button>
                 <Link to='/login'>
-                <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Go To Login Page</button>    
+                <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Go To Login Page</button>
                 </Link>
 
 
@@ -232,25 +248,25 @@ export default function Registration(){
             )}
         </Formik>
         {/* {error && <div style={{ color: 'red' }}>{error}</div>} */}
-        
+
         {/* <div className='max-w-md ml-auto'>
         <Link to='/login'>
             <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Go To Login Page</button>
         </Link>
         </div> */}
-        
+
         {/* <h2>Registered Users</h2>
                 <ul>
                     {storedUsers.map((user, index) => (
                         <li key={index}>
-                            {user.name} - {user.email} - {user.mobileNumber} - {user.address} - {user.gender} - {user.birthdate} - {user.password} 
+                            {user.name} - {user.email} - {user.mobileNumber} - {user.address} - {user.gender} - {user.birthdate} - {user.password}
                         </li>
                     ))}
                 </ul>
                 <button onClick={printStoredUsers}>Print Stored Users to Console</button> */}
         </div>
-        
-        
-        
+
+
+
     )
 }

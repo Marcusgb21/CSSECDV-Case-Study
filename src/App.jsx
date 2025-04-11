@@ -1,13 +1,13 @@
-import Registration from "./components/Registration"
-import Login from "./components/Login"
-import ForgotPassword from './components/ForgotPassword';
+import { useSelector } from 'react-redux';
+import { Navigate } from 'react-router-dom';
 
 function App() {
+  const { loggedInUser } = useSelector((state) => state.user);
 
+  // If user is logged in, redirect to home page
+  // Otherwise, redirect to login page
   return (
-    <>
-    <Login />
-    </>
+    <Navigate to={loggedInUser ? '/' : '/login'} replace />
   )
 }
 

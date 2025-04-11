@@ -12,12 +12,17 @@ import {
 import Login from './components/Login.jsx'
 import Registration from './components/Registration.jsx'
 import ForgotPassword from './components/ForgotPassword.jsx';
+import Home from './components/Home.jsx';
+import AdminDashboard from './components/AdminDashboard.jsx';
+import ProductManagerDashboard from './components/ProductManagerDashboard.jsx';
+import CustomerDashboard from './components/CustomerDashboard.jsx';
+import RoleBasedRoute from './components/RoleBasedRoute.jsx';
 
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <Home />,
   },
   {
     path: "login",
@@ -30,6 +35,30 @@ const router = createBrowserRouter([
   {
     path: "forgot-password",
     element: <ForgotPassword />,
+  },
+  {
+    path: "admin-dashboard",
+    element: (
+      <RoleBasedRoute allowedRoles={['Website Administrator']}>
+        <AdminDashboard />
+      </RoleBasedRoute>
+    ),
+  },
+  {
+    path: "product-manager-dashboard",
+    element: (
+      <RoleBasedRoute allowedRoles={['Product Manager', 'Website Administrator']}>
+        <ProductManagerDashboard />
+      </RoleBasedRoute>
+    ),
+  },
+  {
+    path: "customer-dashboard",
+    element: (
+      <RoleBasedRoute allowedRoles={['Customer', 'Product Manager', 'Website Administrator']}>
+        <CustomerDashboard />
+      </RoleBasedRoute>
+    ),
   }
 ]);
 
@@ -41,9 +70,9 @@ const store = configureStore({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Provider store={store}> 
+    <Provider store={store}>
       <RouterProvider router={router} />
       {/* <App /> */}
-    </Provider> 
+    </Provider>
   </React.StrictMode>,
 )

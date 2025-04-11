@@ -4,10 +4,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { loginRequest, loginSuccess, loginFailure, clearError } from '../features/user';
 import { useState, useEffect } from 'react';
 import bcrypt from 'bcryptjs';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Login(){
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [storedUsers, setStoredUsers] = useState([]);
     const {status, error, loggedInUser, isLocked, lockUntil} = useSelector((state) => state.user);
     const [currentUser, setCurrentUser] = useState(null);
@@ -65,7 +66,7 @@ export default function Login(){
         }}
         validationSchema={loginSchema}
         onSubmit={(values, {setSubmitting}) =>{
-        
+
         dispatch(clearError());
         dispatch(loginRequest());
 
@@ -99,22 +100,31 @@ export default function Login(){
         setSubmitting(false);
         return;
       }
+            // If user doesn't have a role yet, assign the default 'Customer' role
+            if (!user.role) {
+              user.role = 'Customer';
+            }
+
             dispatch(loginSuccess(user));
 
             logAttempt.success = true;
             logAttempt.reason = "Login successful";
             // Update localStorage after successful login
-        const updatedUsers = users.map((u) => {
-          if (u.email === user.email) {
-            return {
-              ...u,
-              failedAttempts: 0, // Reset failed attempts
-              lockUntil: null, // Reset lock time
-            };
-          }
-          return u;
-        });
-        localStorage.setItem('users', JSON.stringify(updatedUsers));
+            const updatedUsers = users.map((u) => {
+              if (u.email === user.email) {
+                return {
+                  ...u,
+                  failedAttempts: 0, // Reset failed attempts
+                  lockUntil: null, // Reset lock time,
+                  role: user.role // Ensure role is saved
+                };
+              }
+              return u;
+            });
+            localStorage.setItem('users', JSON.stringify(updatedUsers));
+
+            // Redirect to home page after successful login
+            navigate('/');
             } catch(error){
                 dispatch(loginFailure(error.message));
                 logAttempt.success = false;
@@ -133,13 +143,13 @@ export default function Login(){
             // Save updated users back to localStorage
       localStorage.setItem('users', JSON.stringify(updatedUsers));
             }
-        
+
             const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
             prevLogs.push(logAttempt);
             localStorage.setItem('authLogs', JSON.stringify(prevLogs));
 
             setSubmitting(false);
-            
+
         }, 1000);
         }}
         >
@@ -153,7 +163,7 @@ export default function Login(){
                         <div style={{ color: 'red' }}>{errors.emailOrMobile} </div>
                     ) : null}
                 </div>
-                
+
                 <div className='mb-5'>
                 <label htmlFor='password' className='block mb-2 text-sm font-medium text-gray-900 dark:text-black'>Password</label>
                 <Field name="password" type="password" placeholder="password" className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-100 dark:border-gray-100 dark:placeholder-gray-400 dark:text-black dark:focus:ring-blue-500 dark:focus:border-blue-500'/>
@@ -161,44 +171,40 @@ export default function Login(){
                         <div style={{ color: 'red' }}>{errors.password} </div>
                     ) : null}
                 </div>
-                
+
                 {status === 'loading' && <div>Loading...</div>}
                 {status === 'failed' && <div>{error}</div>}
                 <button type='submit' disabled={ isSubmitting || status === 'loading'} className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Login</button>
                 <Link to='/register' >
                     <button className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'>Go To Registration Page</button>
-                </Link> 
+                </Link>
 
                 <Link to="/forgot-password" className="text-blue-600 mt-2 block">Forgot Password?</Link>
 
-                
+
                 {error && <div style={{ color: 'red' }}>{error}</div>}
                 {lockMessage && <div style={{ color: 'red' }}>{lockMessage}</div>}
-                {loggedInUser && (
-                    <div>
-                        <h2 className='relative z-0 w-full mb-5 group text-center text-3xl'>Welcome <span className="text-blue-500">{loggedInUser.name}</span></h2>
-                    </div>
-                )}
+                {/* Success message removed as we now redirect to home page */}
 
-                
-                
+
+
             </Form>
             )}
-            
+
         </Formik>
 
-         
+
           {/* {error && <div style={{ color: 'red' }}>{error}</div>}  */}
                 <ul>
                 {/* {storedUsers.map((user, index) => (
                     <li key={index}>
-                        Welcome {user.name} 
+                        Welcome {user.name}
                          {user.email} - {user.mobileNumber} - {user.address} - {user.gender} - {user.birthdate}
                     </li>
                 ))} */}
                 </ul>
                 {/* <button onClick={printStoredUsers}>Print Stored Users to Console</button> */}
         </div>
-        
+
     )
 }
