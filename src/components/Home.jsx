@@ -6,27 +6,43 @@ import { isAdmin, isProductManager, isCustomer } from '../features/user';
 const Home = () => {
   const { loggedInUser } = useSelector((state) => state.user);
 
-  // Migrate existing users to have roles if they don't already
+  // Migrate existing users to have roles and password history if they don't already
   useEffect(() => {
-    const migrateUsersToHaveRoles = () => {
+    const migrateUsers = () => {
       const users = JSON.parse(localStorage.getItem('users')) || [];
       let needsUpdate = false;
 
       const updatedUsers = users.map(user => {
-        if (!user.role) {
+        let updatedUser = { ...user };
+
+        // Add role if missing
+        if (!updatedUser.role) {
           needsUpdate = true;
-          return { ...user, role: 'Customer' }; // Default role
+          updatedUser.role = 'Customer'; // Default role
         }
-        return user;
+
+        // Add password history if missing
+        if (!updatedUser.passwordHistory) {
+          needsUpdate = true;
+          updatedUser.passwordHistory = []; // Initialize empty password history
+        }
+
+        // Add password last changed date if missing
+        if (!updatedUser.passwordLastChanged) {
+          needsUpdate = true;
+          updatedUser.passwordLastChanged = new Date().toISOString();
+        }
+
+        return updatedUser;
       });
 
       if (needsUpdate) {
         localStorage.setItem('users', JSON.stringify(updatedUsers));
-        console.log('Migrated users to have roles');
+        console.log('Migrated users to have roles and password history');
       }
     };
 
-    migrateUsersToHaveRoles();
+    migrateUsers();
   }, []);
 
   // If no user is logged in, redirect to login
@@ -69,6 +85,13 @@ const Home = () => {
               Customer Dashboard
             </Link>
           )}
+
+          <Link
+            to="/change-password"
+            className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+          >
+            Change Password
+          </Link>
 
           <Link
             to="/login"

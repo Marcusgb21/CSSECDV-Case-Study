@@ -17,6 +17,7 @@ import AdminDashboard from './components/AdminDashboard.jsx';
 import ProductManagerDashboard from './components/ProductManagerDashboard.jsx';
 import CustomerDashboard from './components/CustomerDashboard.jsx';
 import RoleBasedRoute from './components/RoleBasedRoute.jsx';
+import ChangePassword from './components/ChangePassword.jsx';
 
 
 const router = createBrowserRouter([
@@ -57,6 +58,14 @@ const router = createBrowserRouter([
     element: (
       <RoleBasedRoute allowedRoles={['Customer', 'Product Manager', 'Website Administrator']}>
         <CustomerDashboard />
+      </RoleBasedRoute>
+    ),
+  },
+  {
+    path: "change-password",
+    element: (
+      <RoleBasedRoute allowedRoles={['Customer', 'Product Manager', 'Website Administrator']}>
+        <ChangePassword />
       </RoleBasedRoute>
     ),
   }

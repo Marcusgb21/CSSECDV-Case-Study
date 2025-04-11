@@ -113,7 +113,9 @@ export default function Registration(){
                         const newUser = {
                         ...values,
                         password: hashedPassword,
-                        securityAnswerHash: hashedAnswer
+                        securityAnswerHash: hashedAnswer,
+                        passwordHistory: [], // Initialize empty password history
+                        passwordLastChanged: new Date().toISOString() // Track when password was set
                         };
                         delete newUser.securityAnswer; // Don't store plain answer
 
