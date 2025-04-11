@@ -16,6 +16,13 @@ How to run it:
 5. Click the localhost link provided in the terminal to open the app in your browser.
    
 6. To stop the project, press Ctrl + C in the terminal.
+
+***** To Check the local storage information *******
+1. Right-click on the project page
+2. Find inspect
+3. Head to console and type
+JSON.parse(localStorage.getItem('users'))
+
    
 
 
