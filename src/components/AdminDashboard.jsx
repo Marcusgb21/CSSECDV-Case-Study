@@ -37,7 +37,7 @@ const AdminDashboard = () => {
     localStorage.setItem('users', JSON.stringify(updatedUsers));
     setUsers(updatedUsers);
     setMessage(`Role updated for ${selectedUser.name} to ${newRole}`);
-    
+
     // Clear selection
     setSelectedUser(null);
     setNewRole('');
@@ -59,18 +59,19 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-      
-      <div className="mb-6">
+
+      <div className="mb-6 flex space-x-4">
         <Link to="/" className="text-blue-600 hover:underline">Back to Home</Link>
+        <Link to="/security-logs" className="text-red-600 hover:underline">View Security Logs</Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-4">User Management</h2>
-          
+
           <div className="mb-4">
             <h3 className="font-medium mb-2">Select User:</h3>
-            <select 
+            <select
               className="w-full p-2 border rounded"
               value={selectedUser ? selectedUser.email : ''}
               onChange={(e) => {
@@ -92,7 +93,7 @@ const AdminDashboard = () => {
           {selectedUser && (
             <div className="mb-4">
               <h3 className="font-medium mb-2">Change Role:</h3>
-              <select 
+              <select
                 className="w-full p-2 border rounded mb-4"
                 value={newRole}
                 onChange={handleRoleChange}
@@ -103,7 +104,7 @@ const AdminDashboard = () => {
                 ))}
               </select>
 
-              <button 
+              <button
                 onClick={updateUserRole}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               >
