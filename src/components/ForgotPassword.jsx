@@ -11,6 +11,20 @@ export default function ForgetPassword() {
 
   const saltRounds = 10;
 
+  const logRecoveryAttempt = ({ stage, email, success, reason }) => {
+    const logEntry = {
+      stage,
+      email: email || 'N/A',
+      time: new Date().toISOString(),
+      success,
+      reason,
+    };
+  
+    const logs = JSON.parse(localStorage.getItem('recoveryLogs')) || [];
+    logs.push(logEntry);
+    localStorage.setItem('recoveryLogs', JSON.stringify(logs));
+  };
+
   const initialValidationSchema = Yup.object().shape({
     email: Yup.string().email('Invalid email').required('Email is required'),
     mobileNumber: Yup.string()
@@ -41,9 +55,21 @@ export default function ForgetPassword() {
       setUserFound(found);
       setStage(2);
       setMessage('');
+      logRecoveryAttempt({
+        stage: 1,
+        email: found.email,
+        success: true,
+        reason: "Identity matched"
+      });
     } else {
       setMessage('User not found. Check your email and mobile number.');
-    }
+      logRecoveryAttempt({
+        stage: 1,
+        email: values.email,
+        success: false,
+        reason: "User not found"
+      });
+    }    
   };
 
   const handleAnswerSubmit = (values) => {
@@ -51,9 +77,21 @@ export default function ForgetPassword() {
     if (isValid) {
       setStage(3);
       setMessage('');
+      logRecoveryAttempt({
+        stage: 2,
+        email: userFound.email,
+        success: true,
+        reason: "Correct security answer"
+      });
     } else {
       setMessage('Incorrect security answer.');
-    }
+      logRecoveryAttempt({
+        stage: 2,
+        email: userFound.email,
+        success: false,
+        reason: "Incorrect security answer"
+      });
+    }    
   };
 
   const handleResetPassword = (values, resetForm) => {
@@ -65,6 +103,12 @@ export default function ForgetPassword() {
       users[index].password = bcrypt.hashSync(values.newPassword, salt);
       localStorage.setItem('users', JSON.stringify(users));
       setMessage('✅ Password successfully updated!');
+      logRecoveryAttempt({
+        stage: 3,
+        email: userFound.email,
+        success: true,
+        reason: "Password reset successful"
+      });      
       setUserFound(null);
       setStage(1);
       resetForm();
