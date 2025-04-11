@@ -1,6 +1,5 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
 import './index.css'
 import { configureStore } from '@reduxjs/toolkit'
 import { Provider } from 'react-redux'
@@ -16,8 +15,11 @@ import Home from './components/Home.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
 import ProductManagerDashboard from './components/ProductManagerDashboard.jsx';
 import CustomerDashboard from './components/CustomerDashboard.jsx';
-import RoleBasedRoute from './components/RoleBasedRoute.jsx';
 import ChangePassword from './components/ChangePassword.jsx';
+import SecurityLogs from './components/SecurityLogs.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
+import AuthGuard from './components/AuthGuard.jsx';
+import AccessDenied from './components/AccessDenied.jsx';
 
 
 const router = createBrowserRouter([
@@ -40,34 +42,46 @@ const router = createBrowserRouter([
   {
     path: "admin-dashboard",
     element: (
-      <RoleBasedRoute allowedRoles={['Website Administrator']}>
+      <AuthGuard requiredRoles={['Website Administrator']}>
         <AdminDashboard />
-      </RoleBasedRoute>
+      </AuthGuard>
     ),
   },
   {
     path: "product-manager-dashboard",
     element: (
-      <RoleBasedRoute allowedRoles={['Product Manager', 'Website Administrator']}>
+      <AuthGuard requiredRoles={['Product Manager', 'Website Administrator']}>
         <ProductManagerDashboard />
-      </RoleBasedRoute>
+      </AuthGuard>
     ),
   },
   {
     path: "customer-dashboard",
     element: (
-      <RoleBasedRoute allowedRoles={['Customer', 'Product Manager', 'Website Administrator']}>
+      <AuthGuard requiredRoles={['Customer', 'Product Manager', 'Website Administrator']}>
         <CustomerDashboard />
-      </RoleBasedRoute>
+      </AuthGuard>
     ),
   },
   {
     path: "change-password",
     element: (
-      <RoleBasedRoute allowedRoles={['Customer', 'Product Manager', 'Website Administrator']}>
+      <AuthGuard requiredRoles={['Customer', 'Product Manager', 'Website Administrator']}>
         <ChangePassword />
-      </RoleBasedRoute>
+      </AuthGuard>
     ),
+  },
+  {
+    path: "security-logs",
+    element: (
+      <AuthGuard requiredRoles={['Website Administrator']}>
+        <SecurityLogs />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "access-denied",
+    element: <AccessDenied />,
   }
 ]);
 
@@ -80,8 +94,9 @@ const store = configureStore({
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <Provider store={store}>
-      <RouterProvider router={router} />
-      {/* <App /> */}
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </Provider>
   </React.StrictMode>,
 )
