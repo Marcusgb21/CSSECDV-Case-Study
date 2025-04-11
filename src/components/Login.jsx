@@ -73,125 +73,81 @@ export default function Login(){
 
         setTimeout(() => {
             const logAttempt = {
-                emailOrMobile: values.emailOrMobile,
-                time: new Date().toISOString(),
-                success: false, // default, update later
-                reason: null
+              emailOrMobile: values.emailOrMobile,
+              time: new Date().toISOString(),
+              success: false,
+              reason: null
             };
-
-            try{
-                const users = JSON.parse(localStorage.getItem('users')) || []
-                const user = users.find(u => ((u.email === values.emailOrMobile || u.mobileNumber === values.emailOrMobile)
-            ))
-
-            if(!user){
+          
+            try {
+              const users = JSON.parse(localStorage.getItem('users')) || [];
+          
+              const user = users.find(u => u.email === values.emailOrMobile || u.mobileNumber === values.emailOrMobile);
+          
+              if (!user) {
+                logAttempt.reason = 'User not found';
                 throw new Error('User not found! Please register');
-            }
-
-            const isPasswordMatch = bcrypt.compareSync(values.password, user.password);
-
-            if (!isPasswordMatch) {
-            throw new Error('Invalid login credentials');
-            }
-
-
-            //Check if the account is locked
-      if (user.lockUntil && Date.now() < user.lockUntil) {
-        dispatch(loginFailure('Account is temporarily locked. Please try again later.'));
-        setSubmitting(false);
-        return;
-      }
-            // If user doesn't have a role yet, assign the default 'Customer' role
-            if (!user.role) {
-              user.role = 'Customer';
-            }
-
-            dispatch(loginSuccess(user));
-
-            logAttempt.success = true;
-            logAttempt.reason = "Login successful";
-            
-            // Get the last login attempt from localStorage
-            const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
-            const lastAttempt = authLogs
-                .filter(log => log.emailOrMobile === values.emailOrMobile)
-                .sort((a, b) => new Date(b.time) - new Date(a.time))[1];
-
-            if (lastAttempt) {
-                const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
-                setLastAttemptInfo({
-                    time: lastAttemptTime,
-                    success: lastAttempt.success,
-                    reason: lastAttempt.reason
-                });
-                
-                // Show the last attempt info for 2 seconds before redirecting
-                setTimeout(() => {
-                    navigate('/');
-                }, 2000);
-            } else {
-                // If no previous attempt, redirect immediately
-                navigate('/');
-            }
-
-            // Update localStorage after successful login
-            const updatedUsers = users.map((u) => {
-              if (u.email === user.email) {
-                return {
-                  ...u,
-                  failedAttempts: 0, // Reset failed attempts
-                  lockUntil: null, // Reset lock time,
-                  role: user.role // Ensure role is saved
-                };
               }
-              return u;
-            });
-            localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-            // Redirect to home page after successful login
-            navigate('/');
-            } catch(error){
-                dispatch(loginFailure(error.message));
-                logAttempt.success = false;
-                logAttempt.reason = error.message;
-                
-                // Log the failed attempt
-                const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
-                prevLogs.push(logAttempt);
-                localStorage.setItem('authLogs', JSON.stringify(prevLogs));
-
-                // Get the last login attempt for this user
-                const lastAttempt = prevLogs
-                    .filter(log => log.emailOrMobile === values.emailOrMobile)
-                    .sort((a, b) => new Date(b.time) - new Date(a.time))[1]; // Get the second to last attempt (the one before this current failure)
-
-                if (lastAttempt) {
-                    const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
-                    setLastAttemptInfo({
-                        time: lastAttemptTime,
-                        success: lastAttempt.success,
-                        reason: lastAttempt.reason
-                    });
+          
+              const isPasswordMatch = bcrypt.compareSync(values.password, user.password);
+          
+              if (!isPasswordMatch) {
+                logAttempt.reason = 'Incorrect password';
+                throw new Error('Invalid login credentials');
+              }
+          
+              if (user.lockUntil && Date.now() < user.lockUntil) {
+                logAttempt.reason = 'Account locked';
+                throw new Error('Account is temporarily locked. Please try again later.');
+              }
+          
+              logAttempt.success = true;
+              logAttempt.reason = 'Login successful';
+              dispatch(loginSuccess(user));
+          
+              const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+              authLogs.push(logAttempt);
+              localStorage.setItem('authLogs', JSON.stringify(authLogs));
+          
+              const updatedUsers = users.map(u => {
+                if (u.email === user.email) {
+                  return {
+                    ...u,
+                    failedAttempts: 0,
+                    lockUntil: null,
+                  };
                 }
-
-                const users = JSON.parse(localStorage.getItem('users')) || [];
-                const updatedUsers = users.map((u) => {
-        if (u.email === values.emailOrMobile) {
-          return {
-            ...u,
-            failedAttempts: (u.failedAttempts || 0) + 1, // Increment failed attempts
-            lockUntil: (u.failedAttempts || 0) >= 4 ? Date.now() + 5 * 60 * 1000 : null, // Lock account after 5 failed attempts
-          };
-        }
-        return u;
-      });
-            // Save updated users back to localStorage
-      localStorage.setItem('users', JSON.stringify(updatedUsers));
+                return u;
+              });
+              localStorage.setItem('users', JSON.stringify(updatedUsers));
+          
+              navigate('/');
+          
+            } catch (error) {
+              dispatch(loginFailure(error.message));
+              logAttempt.success = false;
+              logAttempt.reason = error.message;
+          
+              const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+              prevLogs.push(logAttempt);
+              localStorage.setItem('authLogs', JSON.stringify(prevLogs));
+          
+              const users = JSON.parse(localStorage.getItem('users')) || [];
+              const updatedUsers = users.map((u) => {
+                if (u.email === values.emailOrMobile) {
+                  return {
+                    ...u,
+                    failedAttempts: (u.failedAttempts || 0) + 1,
+                    lockUntil: (u.failedAttempts || 0) >= 4 ? Date.now() + 5 * 60 * 1000 : null,
+                  };
+                }
+                return u;
+              });
+              localStorage.setItem('users', JSON.stringify(updatedUsers));
             }
-
+          
             setSubmitting(false);
-
-        }, 1000);
+          }, 1000);          
         }}
         >
             {({ isSubmitting, errors, touched}) =>

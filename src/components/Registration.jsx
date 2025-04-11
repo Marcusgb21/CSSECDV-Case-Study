@@ -77,81 +77,81 @@ export default function Registration(){
                 role: 'Customer' // Default role
             }}
             validationSchema={registrationSchema}
-            onSubmit={(values, {setSubmitting})=> {
-                console.log(values)
-                setSubmitting(false)
-
+            onSubmit={(values, { setSubmitting }) => {
+                setSubmitting(false);
                 dispatch(clearError());
                 dispatch(registerRequest());
-
+              
                 setTimeout(() => {
-                    const logAttempt = {
-                        email: values.email,
-                        mobileNumber: values.mobileNumber,
-                        time: new Date().toISOString(),
-                        success: false,
-                        reason: null
-                      };
-
-                      try {
-                        const users = JSON.parse(localStorage.getItem('users')) || [];
-                        const userExists = users.some(user =>
-                          user.email === values.email &&
-                          user.mobileNumber === values.mobileNumber &&
-                          user.address === values.address &&
-                          user.gender === values.gender &&
-                          user.birthdate === values.birthdate
-                        );
-
-                        if (userExists) {
-                          throw new Error("All given information are already used...");
-                        }
-
-                        const salt = bcrypt.genSaltSync(saltRounds);
-                        const hashedPassword = bcrypt.hashSync(values.password, salt);
-                        const hashedAnswer = bcrypt.hashSync(values.securityAnswer, salt);
-                        const newUser = {
-                        ...values,
-                        password: hashedPassword,
-                        securityAnswerHash: hashedAnswer,
-                        passwordHistory: [], // Initialize empty password history
-                        passwordLastChanged: new Date().toISOString() // Track when password was set
-                        };
-                        delete newUser.securityAnswer; // Don't store plain answer
-
-
-                        users.push(newUser);
-                        localStorage.setItem('users', JSON.stringify(users));
-                        setStoredUsers(users);
-
-                        dispatch(registerSuccess(newUser));
-
-                        // ✅ Log success
-                        logAttempt.success = true;
-                        logAttempt.reason = "Registration successful";
-
-                        // Redirect to login page after successful registration
-                        setTimeout(() => {
-                          navigate('/login');
-                        }, 1500);
-
-                      } catch (error) {
-                        dispatch(registerFailure(error.message));
-
-                        // ✅ Log failure
-                        logAttempt.success = false;
-                        logAttempt.reason = error.message;
-                      }
-
-                      // ✅ Log the attempt regardless of success/failure
-                      const prevLogs = JSON.parse(localStorage.getItem('registrationLogs')) || [];
-                      prevLogs.push(logAttempt);
-                      localStorage.setItem('registrationLogs', JSON.stringify(prevLogs));
-
-                      setSubmitting(false);
-
+                  const logAttempt = {
+                    email: values.email,
+                    mobileNumber: values.mobileNumber,
+                    time: new Date().toISOString(),
+                    operation: 'register',
+                    success: false,
+                    reason: null
+                  };
+              
+                  try {
+                    const users = JSON.parse(localStorage.getItem('users')) || [];
+                    const userExists = users.some(user =>
+                      user.email === values.email &&
+                      user.mobileNumber === values.mobileNumber &&
+                      user.address === values.address &&
+                      user.gender === values.gender &&
+                      user.birthdate === values.birthdate
+                    );
+              
+                    if (userExists) {
+                      throw new Error("All given information are already used...");
+                    }
+              
+                    const salt = bcrypt.genSaltSync(10);
+                    const hashedPassword = bcrypt.hashSync(values.password, salt);
+                    const hashedAnswer = bcrypt.hashSync(values.securityAnswer, salt);
+              
+                    const newUser = {
+                      ...values,
+                      password: hashedPassword,
+                      securityAnswerHash: hashedAnswer,
+                      passwordHistory: [],
+                      passwordLastChanged: new Date().toISOString()
+                    };
+                    delete newUser.securityAnswer;
+              
+                    users.push(newUser);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    setStoredUsers(users);
+              
+                    dispatch(registerSuccess(newUser));
+              
+                    // ✅ Successful log
+                    logAttempt.success = true;
+                    logAttempt.reason = "Registration successful";
+              
+                    const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+                    authLogs.push(logAttempt);
+                    localStorage.setItem('authLogs', JSON.stringify(authLogs));
+              
+                    setTimeout(() => {
+                      navigate('/login');
+                    }, 1500);
+              
+                  } catch (error) {
+                    dispatch(registerFailure(error.message));
+              
+                    // ✅ Failed log
+                    logAttempt.success = false;
+                    logAttempt.reason = error.message;
+              
+                    const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+                    authLogs.push(logAttempt);
+                    localStorage.setItem('authLogs', JSON.stringify(authLogs));
+                  }
+              
+                  setSubmitting(false);
                 }, 1000);
-            }}
+              }}
         >
             {({ isSubmitting, errors, touched }) => (
             <Form className="max-w-md mx-auto">
