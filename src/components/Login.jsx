@@ -12,6 +12,7 @@ export default function Login(){
     const [storedUsers, setStoredUsers] = useState([]);
     const {status, error, loggedInUser, isLocked, lockUntil} = useSelector((state) => state.user);
     const [currentUser, setCurrentUser] = useState(null);
+    const [lastAttemptInfo, setLastAttemptInfo] = useState(null);
 
     const mobileNumberRegex = /^(\+?\d{1,4}|\d{1,4})?(\s?\d{10})$/;
 
@@ -110,14 +111,27 @@ export default function Login(){
             logAttempt.success = true;
             logAttempt.reason = "Login successful";
             
-            // Display last login attempt information
-            const lastAttempt = user.lastLoginAttempt;
+            // Get the last login attempt from localStorage
+            const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+            const lastAttempt = authLogs
+                .filter(log => log.emailOrMobile === values.emailOrMobile)
+                .sort((a, b) => new Date(b.time) - new Date(a.time))[1];
+
             if (lastAttempt) {
                 const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
-                const message = lastAttempt.success 
-                    ? `Last successful login: ${lastAttemptTime}`
-                    : `Last failed login attempt: ${lastAttemptTime} (${lastAttempt.reason})`;
-                alert(message);
+                setLastAttemptInfo({
+                    time: lastAttemptTime,
+                    success: lastAttempt.success,
+                    reason: lastAttempt.reason
+                });
+                
+                // Show the last attempt info for 2 seconds before redirecting
+                setTimeout(() => {
+                    navigate('/');
+                }, 2000);
+            } else {
+                // If no previous attempt, redirect immediately
+                navigate('/');
             }
 
             // Update localStorage after successful login
@@ -140,6 +154,26 @@ export default function Login(){
                 dispatch(loginFailure(error.message));
                 logAttempt.success = false;
                 logAttempt.reason = error.message;
+                
+                // Log the failed attempt
+                const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+                prevLogs.push(logAttempt);
+                localStorage.setItem('authLogs', JSON.stringify(prevLogs));
+
+                // Get the last login attempt for this user
+                const lastAttempt = prevLogs
+                    .filter(log => log.emailOrMobile === values.emailOrMobile)
+                    .sort((a, b) => new Date(b.time) - new Date(a.time))[1]; // Get the second to last attempt (the one before this current failure)
+
+                if (lastAttempt) {
+                    const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
+                    setLastAttemptInfo({
+                        time: lastAttemptTime,
+                        success: lastAttempt.success,
+                        reason: lastAttempt.reason
+                    });
+                }
+
                 const users = JSON.parse(localStorage.getItem('users')) || [];
                 const updatedUsers = users.map((u) => {
         if (u.email === values.emailOrMobile) {
@@ -154,10 +188,6 @@ export default function Login(){
             // Save updated users back to localStorage
       localStorage.setItem('users', JSON.stringify(updatedUsers));
             }
-
-            const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
-            prevLogs.push(logAttempt);
-            localStorage.setItem('authLogs', JSON.stringify(prevLogs));
 
             setSubmitting(false);
 
@@ -195,7 +225,18 @@ export default function Login(){
 
                 {error && <div style={{ color: 'red' }}>{error}</div>}
                 {lockMessage && <div style={{ color: 'red' }}>{lockMessage}</div>}
-                {/* Success message removed as we now redirect to home page */}
+
+                {lastAttemptInfo && (
+                    <div className="mt-4 p-4 bg-gray-100 rounded">
+                        <h3 className="font-semibold mb-2">Last Login Attempt:</h3>
+                        <p className={lastAttemptInfo.success ? "text-green-600" : "text-red-600"}>
+                            {lastAttemptInfo.success 
+                                ? `Last successful login: ${lastAttemptInfo.time}`
+                                : `Last failed login attempt: ${lastAttemptInfo.time} (${lastAttemptInfo.reason})`
+                            }
+                        </p>
+                    </div>
+                )}
 
 
 

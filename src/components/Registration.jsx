@@ -214,7 +214,7 @@ export default function Registration(){
                 <div className='relative z-0 w-full mb-5 group'>
                 <label htmlFor='securityQuestion' className='block mb-1 text-sm font-medium text-gray-700'>Security Question</label>
                 <Field name="securityQuestion" as="select" className="block w-full p-2 border border-gray-300 rounded">
-                    <div className="text-gray-500 italic p-2">Select a security question</div>
+                    <option value="" disabled>Select a security question</option>
                     {securityQuestions.map((q, idx) => (
                     <option key={idx} value={q}>{q}</option>
                     ))}

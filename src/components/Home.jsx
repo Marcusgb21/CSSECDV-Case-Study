@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link, Navigate } from 'react-router-dom';
 import { isAdmin, isProductManager, isCustomer } from '../features/user';
 
 const Home = () => {
   const { loggedInUser } = useSelector((state) => state.user);
+  const [lastAttemptInfo, setLastAttemptInfo] = useState(null);
 
   // Migrate existing users to have roles and password history if they don't already
   useEffect(() => {
@@ -45,6 +46,25 @@ const Home = () => {
     migrateUsers();
   }, []);
 
+  // Get last login attempt information
+  useEffect(() => {
+    if (loggedInUser) {
+      const authLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+      const lastAttempt = authLogs
+        .filter(log => log.emailOrMobile === loggedInUser.email)
+        .sort((a, b) => new Date(b.time) - new Date(a.time))[1];
+
+      if (lastAttempt) {
+        const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
+        setLastAttemptInfo({
+          time: lastAttemptTime,
+          success: lastAttempt.success,
+          reason: lastAttempt.reason
+        });
+      }
+    }
+  }, [loggedInUser]);
+
   // If no user is logged in, redirect to login
   if (!loggedInUser) {
     return <Navigate to="/login" replace />;
@@ -53,6 +73,18 @@ const Home = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Welcome to the Dashboard</h1>
+
+      {lastAttemptInfo && (
+        <div className="mb-6 p-4 bg-gray-100 rounded">
+          <h3 className="font-semibold mb-2">Last Login Attempt:</h3>
+          <p className={lastAttemptInfo.success ? "text-green-600" : "text-red-600"}>
+            {lastAttemptInfo.success 
+              ? `Last successful login: ${lastAttemptInfo.time}`
+              : `Last failed login attempt: ${lastAttemptInfo.time} (${lastAttemptInfo.reason})`
+            }
+          </p>
+        </div>
+      )}
 
       <div className="bg-white p-6 rounded shadow mb-6">
         <h2 className="text-xl font-semibold mb-2">Hello, {loggedInUser.name}!</h2>
