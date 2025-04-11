@@ -260,7 +260,31 @@ const ChangePassword = () => {
             confirmPassword: ''
           }}
           validationSchema={changePasswordSchema}
-          onSubmit={handlePasswordChange}
+          onSubmit={async (values, actions) => {
+            try {
+              await changePasswordSchema.validate(values, { abortEarly: false });
+              
+              // ✅ Validation passed — continue with password change
+              handlePasswordChange(values);
+          
+            } catch (validationErrors) {
+              if (validationErrors.inner && validationErrors.inner.length > 0) {
+                const validationLog = validationErrors.inner.map((error) => ({
+                  email: loggedInUser?.email || 'unknown',
+                  field: error.path,
+                  message: error.message,
+                  time: new Date().toISOString(),
+                  operation: 'password_change',
+                  success: false
+                }));
+          
+                const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+                localStorage.setItem('authLogs', JSON.stringify([...prevLogs, ...validationLog]));
+              }
+          
+              actions.setSubmitting(false);
+            }
+          }}          
         >
           {({ isSubmitting }) => (
             <Form className="space-y-4">
