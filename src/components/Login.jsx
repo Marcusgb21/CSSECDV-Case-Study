@@ -86,7 +86,7 @@ export default function Login(){
           
               if (!user) {
                 logAttempt.reason = 'User not found';
-                throw new Error('User not found! Please register');
+                throw new Error('Invalid login credentials');
               }
           
               const isPasswordMatch = bcrypt.compareSync(values.password, user.password);
