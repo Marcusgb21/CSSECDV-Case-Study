@@ -109,6 +109,17 @@ export default function Login(){
 
             logAttempt.success = true;
             logAttempt.reason = "Login successful";
+            
+            // Display last login attempt information
+            const lastAttempt = user.lastLoginAttempt;
+            if (lastAttempt) {
+                const lastAttemptTime = new Date(lastAttempt.time).toLocaleString();
+                const message = lastAttempt.success 
+                    ? `Last successful login: ${lastAttemptTime}`
+                    : `Last failed login attempt: ${lastAttemptTime} (${lastAttempt.reason})`;
+                alert(message);
+            }
+
             // Update localStorage after successful login
             const updatedUsers = users.map((u) => {
               if (u.email === user.email) {

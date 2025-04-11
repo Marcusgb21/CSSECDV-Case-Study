@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import bcrypt from 'bcryptjs';
+import ReAuthenticate from './ReAuthenticate';
 
 const ChangePassword = () => {
   const { loggedInUser } = useSelector((state) => state.user);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState(''); // 'success' or 'error'
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
   
   const saltRounds = 10;
 
@@ -115,12 +119,100 @@ const ChangePassword = () => {
     setSubmitting(false);
   };
 
+  const handlePasswordChange = async (values) => {
+    try {
+      const users = JSON.parse(localStorage.getItem('users')) || [];
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      
+      if (!currentUser) {
+        throw new Error('User not found');
+      }
+
+      const userIndex = users.findIndex(u => u.email === currentUser.email);
+      if (userIndex === -1) {
+        throw new Error('User not found');
+      }
+
+      const user = users[userIndex];
+
+      // Check if the new password is in the password history
+      if (user.passwordHistory) {
+        const isPasswordUsed = user.passwordHistory.some(oldPassword => 
+          bcrypt.compareSync(values.newPassword, oldPassword)
+        );
+        if (isPasswordUsed) {
+          throw new Error('This password has been used before. Please choose a different password.');
+        }
+      }
+
+      // Hash the new password
+      const salt = bcrypt.genSaltSync(10);
+      const hashedPassword = bcrypt.hashSync(values.newPassword, salt);
+
+      // Update password history
+      if (!user.passwordHistory) {
+        user.passwordHistory = [];
+      }
+      user.passwordHistory.push(user.password);
+      if (user.passwordHistory.length > 5) {
+        user.passwordHistory.shift(); // Keep only the last 5 passwords
+      }
+
+      // Update user's password and last changed date
+      user.password = hashedPassword;
+      user.passwordLastChanged = new Date().toISOString();
+
+      // Save updated user
+      users[userIndex] = user;
+      localStorage.setItem('users', JSON.stringify(users));
+
+      // Log the password change
+      const authLog = {
+        email: user.email,
+        time: new Date().toISOString(),
+        operation: 'password_change',
+        success: true
+      };
+
+      const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+      prevLogs.push(authLog);
+      localStorage.setItem('authLogs', JSON.stringify(prevLogs));
+
+      alert('Password changed successfully!');
+      navigate('/');
+    } catch (error) {
+      setError(error.message);
+      
+      // Log the failed password change attempt
+      const authLog = {
+        email: currentUser.email,
+        time: new Date().toISOString(),
+        operation: 'password_change',
+        success: false,
+        reason: error.message
+      };
+
+      const prevLogs = JSON.parse(localStorage.getItem('authLogs')) || [];
+      prevLogs.push(authLog);
+      localStorage.setItem('authLogs', JSON.stringify(prevLogs));
+    }
+  };
+
   if (!loggedInUser) {
     return (
       <div className="container mx-auto p-4">
         <p>Please log in to change your password.</p>
         <Link to="/login" className="text-blue-600 hover:underline">Go to Login</Link>
       </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <ReAuthenticate
+        onSuccess={() => setIsAuthenticated(true)}
+        onCancel={() => navigate('/')}
+      />
     );
   }
 
@@ -168,7 +260,7 @@ const ChangePassword = () => {
             confirmPassword: ''
           }}
           validationSchema={changePasswordSchema}
-          onSubmit={handleSubmit}
+          onSubmit={handlePasswordChange}
         >
           {({ isSubmitting }) => (
             <Form className="space-y-4">
