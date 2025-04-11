@@ -98,7 +98,7 @@ export default function Login(){
           
               if (user.lockUntil && Date.now() < user.lockUntil) {
                 logAttempt.reason = 'Account locked';
-                throw new Error('Account is temporarily locked. Please try again later.');
+                throw new Error('Too many failed attempts. Please try again later.');
               }
           
               logAttempt.success = true;
